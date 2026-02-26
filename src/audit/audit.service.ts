@@ -1,0 +1,127 @@
+import { Injectable } from '@nestjs/common';
+import { EntityManager } from '@mikro-orm/core';
+
+export enum AuditEventType {
+  USER_LOGIN = 'USER_LOGIN',
+  USER_LOGOUT = 'USER_LOGOUT',
+  USER_CREATED = 'USER_CREATED',
+  USER_UPDATED = 'USER_UPDATED',
+  USER_DELETED = 'USER_DELETED',
+  ENTITY_CREATED = 'ENTITY_CREATED',
+  ENTITY_UPDATED = 'ENTITY_UPDATED',
+  ENTITY_DELETED = 'ENTITY_DELETED',
+  PERMISSION_DENIED = 'PERMISSION_DENIED',
+  SYSTEM_ERROR = 'SYSTEM_ERROR',
+}
+
+export enum AuditSeverity {
+  INFO = 'INFO',
+  WARNING = 'WARNING',
+  ERROR = 'ERROR',
+  CRITICAL = 'CRITICAL',
+}
+
+export interface AuditLogData {
+  timestamp: Date;
+  eventType: AuditEventType;
+  severity: AuditSeverity;
+  userId?: string;
+  userEmail?: string;
+  empresaId?: string;
+  ip?: string;
+  userAgent?: string;
+  resource?: string;
+  action?: string;
+  success: boolean;
+  details?: any;
+  errorMessage?: string;
+}
+
+@Injectable()
+export class AuditService {
+  constructor(private readonly em: EntityManager) {}
+
+  async log(data: AuditLogData): Promise<void> {
+    try {
+      // Em um sistema real, isso salvaria em uma tabela de auditoria imutável
+      // Por enquanto, apenas logamos no console
+      const logEntry = {
+        ...data,
+        timestamp: data.timestamp.toISOString(),
+      };
+
+      console.log('[AUDIT]', JSON.stringify(logEntry));
+
+      // TODO: Persistir em tabela de auditoria quando a entidade for criada
+      // const auditLog = this.em.create(AuditLog, logEntry);
+      // await this.em.persistAndFlush(auditLog);
+    } catch (error) {
+      // Nunca deixar falha de auditoria quebrar a aplicação
+      console.error('Erro ao registrar auditoria:', error);
+    }
+  }
+
+  async logUserAction(
+    userId: string,
+    userEmail: string,
+    eventType: AuditEventType,
+    details?: any,
+  ): Promise<void> {
+    await this.log({
+      timestamp: new Date(),
+      eventType,
+      severity: AuditSeverity.INFO,
+      userId,
+      userEmail,
+      success: true,
+      details,
+    });
+  }
+
+  async logEntityChange(
+    entityName: string,
+    entityId: string,
+    action: 'create' | 'update' | 'delete',
+    userId: string,
+    userEmail: string,
+    empresaId: string,
+    details?: any,
+  ): Promise<void> {
+    const eventTypeMap = {
+      create: AuditEventType.ENTITY_CREATED,
+      update: AuditEventType.ENTITY_UPDATED,
+      delete: AuditEventType.ENTITY_DELETED,
+    };
+
+    await this.log({
+      timestamp: new Date(),
+      eventType: eventTypeMap[action],
+      severity: AuditSeverity.INFO,
+      userId,
+      userEmail,
+      empresaId,
+      resource: entityName,
+      action,
+      success: true,
+      details: { entityId, ...details },
+    });
+  }
+
+  async logError(
+    error: Error,
+    userId?: string,
+    userEmail?: string,
+    context?: string,
+  ): Promise<void> {
+    await this.log({
+      timestamp: new Date(),
+      eventType: AuditEventType.SYSTEM_ERROR,
+      severity: AuditSeverity.ERROR,
+      userId,
+      userEmail,
+      success: false,
+      errorMessage: error.message,
+      details: { context, stack: error.stack },
+    });
+  }
+}
