@@ -1,6 +1,4 @@
-# API Infinity Check
-
-API RESTful construída com NestJS + MikroORM + PostgreSQL seguindo as melhores práticas de segurança e arquitetura.
+# NestJs Structure
 
 ## Stack Tecnológica
 
@@ -38,7 +36,7 @@ API RESTful construída com NestJS + MikroORM + PostgreSQL seguindo as melhores 
 
 ```bash
 git clone <seu-repositorio>
-cd api-infinity-check
+cd <seu-repositorio>
 ```
 
 ### 2. Instale as dependências
@@ -68,7 +66,7 @@ openssl rand -hex 32
 Crie o banco de dados PostgreSQL:
 
 ```sql
-CREATE DATABASE api_infinity_check;
+CREATE DATABASE teste;
 ```
 
 ### 5. Execute as migrations
